@@ -11,7 +11,7 @@ C.kb = 1.3806504e-23;               % Boltzmann constant
 C.eps_0 = 8.854187817e-12;          % vacuum permittivity
 C.mu_0 = 1.2566370614e-6;           % vacuum permeability
 C.c = 299792458;                    % speed of light
-C.g = 9.80665;                      % metres (32.1740 ft) per s²
+C.g = 9.80665;                      % metres (32.1740 ft) per s^2
 C.am = 1.66053892e-27;              % atomic mass
 
 %Defining variables
@@ -146,3 +146,36 @@ while t < tStop
     fprintf('time: %g (%5.3g %%)\n', t, t / tStop * 100);
     pause(0.0001)
 end
+
+%electron density map
+map = zeros(10,20);
+X = ceil(20*x/nx);
+Y = ceil(10*y/ny);
+for p = 1:nPart
+    map(Y(p),X(p)) = map(Y(p),X(p))+1;
+end
+figure
+surf(map)
+hold on
+title('Electron Density Map')
+xlabel('X')
+ylabel('Y')
+zlabel('Number of electrons')
+hold off
+
+%temperature map
+vth = zeros(1,nPart);
+T = vth;
+for p = 1:nPart
+    vth(p) = Vx(p).^2+Vy(p).^2;
+    T(p) = (vth(p)*C.m_0)/(2*C.kb);
+    map(Y(p),X(p)) = T(p);
+end
+figure
+surf(map)
+hold on
+title('Temperature Map')
+xlabel('X')
+ylabel('Y')
+zlabel('Temperature (ºK)')
+hold off
