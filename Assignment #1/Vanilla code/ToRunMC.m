@@ -18,15 +18,16 @@ function ToRunMC()
     %Defining variables
     Temp = 300; %K
     nPart = 10; %Number of particles
-    dt = 1e-5; % nx/vth/100%
-    tStop = 10000 * dt;
+    dt = 5e-15; %nx/vth/100%
+    Iter = 1000;
+    tStop = Iter * dt;
     tmn = 0.2e-12;
-    Pscat = 0.005;
+    Pscat = 1-exp(-dt/tmn);
     goPlot = 1;
+    nx = 200e-9;
+    ny = 100e-9;
 
     %Define Box
-    nx = 200;
-    ny = 100;
     Box = [nx*0.4 nx*0.6 ny*0.4 ny*0.6];
 
     %Assign position
@@ -147,5 +148,3 @@ function ToRunMC()
         pause(0.0001)
     end
 end
-
-
