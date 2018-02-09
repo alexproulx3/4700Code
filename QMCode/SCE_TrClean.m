@@ -25,6 +25,7 @@ nx = 2801;
 len = 60e-9;
 x = linspace(0, len, nx);
 dx = x(2) - x(1);
+dt = 1e-15;
 
 % pot = @Pot_const;
 % paras = [0*C.q_0];
