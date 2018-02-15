@@ -38,10 +38,16 @@ PlotFile = 'image.gif';
 PlotCount = 0;
 doPlotImage = 0; % set to 1 to draw the image
 
-Simulation = 'PNJctEqBias';
+% Simulation = 'Linear'; Linear;
+% Simulation = 'Exponential'; Exponential;
+% Simulation = 'PNJctEqBias';
+Simulation = 'PNLinear'; PNLinear;
+% Simulation = 'GaussianTwoCarRC';
 % Simulation = 'GaussianTwoCarRCLinGrad';
 
-if strcmp(Simulation,'GaussianTwoCar')
+if strcmp(Simulation,'Linear')
+    eval('Linear')
+elseif strcmp(Simulation,'GaussianTwoCar')
     eval('SetGaussian2CarParas');
 elseif strcmp(Simulation,'GaussianTwoCarRC')
     eval('SetGaussian2CarParasRCOnly');
@@ -59,6 +65,8 @@ elseif strcmp(Simulation,'PNJctEq')
     eval('SetPNJctParasEqBC');
 elseif strcmp(Simulation,'PNJctEqBias')
     eval('SetPNJctParasEqBCBias');
+elseif strcmp(Simulation,'PNLinear')
+    eval('PNLinear');
 end
 
 FormGv(nx,LVbc,RVbc); % Poisson equation set Gv and Bv

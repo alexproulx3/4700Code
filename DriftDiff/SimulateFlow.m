@@ -63,7 +63,7 @@ while t < TStop
         fprintf('time: %g (%5.2g %%)\n',t,t/TStop*100);
         PlotVals(nx,dx,'off',l,TStop,PlotYAxis);
         Plt0 = Plt0 + PlDelt;
-        pause(0.0001)
+        pause(0.00001)
     end
 end
 
