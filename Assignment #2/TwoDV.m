@@ -2,8 +2,8 @@ nx = 50;
 ny = nx*3/2;
 sigma = 1e-3;
 
-G = sparse(nx*ny);
-B = zeros(1,nx*ny);
+G = sparse(nx+(ny-1)*ny);
+B = zeros(1,nx+(ny-1)*ny);
 
 for i = 1:nx
     for j = 1:ny
@@ -35,17 +35,21 @@ end
 figure
 spy(G)
 
-E = G\B';
+V = G\B';
     
-Emap = double(zeros(nx,ny));
+Vmap = double(zeros(nx,ny));
 for i = 1:nx
     for j = 1:ny
         n = i + (j - 1) * ny;
-        Emap(i, j) = E(n);
+        Vmap(i, j) = V(n);
     end
 end
 
-figure('units','normalized','outerposition',[0 0 1 1])
-%figure
-surf(Emap)
+%figure('units','normalized','outerposition',[0 0 1 1])
+figure
+surf(Vmap)
 axis 'tight'
+title('Analytical Solution for Voltage')
+xlabel('X')
+ylabel('Y')
+zlabel('Voltage (V)')
