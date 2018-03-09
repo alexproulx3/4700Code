@@ -22,7 +22,7 @@ Iter = 1000;
 tStop = Iter * dt;
 tmn = 0.2e-12;
 Pscat = 1-exp(-dt/tmn);
-goPlot = 0;
+goPlot = 1;
 nx = 200e-9;
 ny = 100e-9;
 

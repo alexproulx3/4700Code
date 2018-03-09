@@ -17,19 +17,115 @@ C.am = 1.66053892e-27;              % atomic mass
 %Defining variables
 Temp = 300; %K
 nPart = 10; %Number of particles
-dt = 5e-15; %nx/vth/100%
+dt = 1e-15; %nx/vth/100%
 Iter = 1000;
 tStop = Iter * dt;
 tmn = 0.2e-12;
 Pscat = 1-exp(-dt/tmn);
 goPlot = 1;
-nx = 200e-9;
-ny = 100e-9;
-V = 1;
+nx = 100;
+ny = nx*3/2;
+sigma0 = 1;
+sigma1 = 1e-2;
+dim = 1e-9;
+Box = [nx*0.4 nx*0.6 ny*0.4 ny*0.6];
+
+G = sparse(nx+(ny-1)*ny);
+B = zeros(1,nx+(ny-1)*ny);
+
+%sigma plot
+sigma = zeros(nx,ny);
+for i = 1:nx
+    for j = 1:ny
+        if i>Box(1)&&i<Box(2)&&(j<Box(3)||j>Box(4))
+            sigma(i,j) = sigma1;
+        else
+            sigma(i,j) = sigma0;
+        end
+    end
+end
+
+figure
+surf(sigma)
+view(90,90)
+axis 'tight'
+
+for i = 1:nx
+    for j = 1:ny
+        n = i + (j - 1) * ny;
+        if i==1
+            G(n,:) = 0;
+            G(n,n) = 1;
+            B(n) = 1;
+        elseif i==nx
+            G(n,:) = 0;
+            G(n,n) = 1;
+        elseif j==1
+            G(n,n) = -sigma(i+1,j)-sigma(i-1,j)-sigma(i,j+1);
+            G(n,n+1) = sigma(i+1,j);
+            G(n,n-1) = sigma(i-1,j);
+            G(n,n+ny) = sigma(i,j+1);
+        elseif j==ny
+            G(n,n) = -sigma(i+1,j)-sigma(i-1,j)-sigma(i,j-1);
+            G(n,n+1) = sigma(i+1,j);
+            G(n,n-1) = sigma(i-1,j);
+            G(n,n-ny) = sigma(i,j-1);
+        else
+            G(n,n) = -sigma(i+1,j)-sigma(i-1,j)-sigma(i,j+1)-sigma(i,j-1);
+            G(n,n+1) = sigma(i+1,j);
+            G(n,n-1) = sigma(i-1,j);
+            G(n,n+ny) = sigma(i,j+1);
+            G(n,n-ny) = sigma(i,j-1);
+        end
+    end
+end
+
+V = G\B';
+
+Vmap = double(zeros(nx,ny));
+for i = 1:nx
+    for j = 1:ny
+        n = i + (j - 1) * ny;
+        Vmap(i, j) = V(n);
+    end
+end
+
+figure
+surf(Vmap)
+axis 'tight'
+view(225,45)
+title('Voltage in two contact region')
+xlabel('X (um)')
+ylabel('Y (um)')
+zlabel('Voltage (V)')
+
+%electric field
+[Ex, Ey] = gradient(Vmap);
+E = (Ex.^2+Ey.^2).^(0.5);
+
+figure
+quiver(-Ex,-Ey)
+axis tight
+title('Electric Field in a two contact region')
+xlabel('X (um)')
+ylabel('Y (um)')
+
+%Redefine position
+nx = 100*dim;
+ny = nx*3/2;
 
 %Assign position
-x(1:nPart) = nx*rand(1,nPart);
-y(1:nPart) = ny*rand(1,nPart);
+while true
+    x(1:nPart) = nx*rand(1,nPart);
+    y(1:nPart) = ny*rand(1,nPart);
+    xnot = (x(:) > Box(1)) & (x(:) < Box(2));
+    ynot = (y(:) > Box(3)) & (y(:) < Box(4));
+    if xnot == 0
+        if ynot == 0
+            break;
+        end
+    end
+end
 
 %Assign velocity
 std0 = sqrt(2 * C.kb * Temp / C.m_0); %Thermal Velocity
@@ -37,7 +133,8 @@ Vx(1:nPart) = std0 * randn(1, nPart);
 Vy(1:nPart) = std0 * randn(1, nPart);
 
 %Electric potential acceleration
-Vxv = dt*C.q_0*V/(C.m_0*nx);
+Vxv = Vmap - (C.q_0/C.m_0)*Ex*dt;
+Vyv = Vmap - (C.q_0/C.m_0)*Ey*dt;
     
 %Calculate mean free path
 mfp = zeros(0,Iter);
@@ -65,19 +162,26 @@ Iy = ones(1,nPart);
 if goPlot
     %set up figure
     figure('units','normalized','outerposition',[0 0 1 1])
+    %axis ([0 nx 0 ny])
     hold on
     title('2-D Particle Projection (1000 iterations)')
     xlim([0 nx])
     ylim([0 ny])
+    line([Box(1), Box(2), Box(2), Box(1), Box(1)], [ny, ny, Box(4), Box(4), ny]);
+    line([Box(1), Box(2), Box(2), Box(1), Box(1)], [0, 0, Box(3), Box(3), 0]);
     xlabel('X (m)')
     ylabel('Y (m)')
     col = hsv(nPart);
+    %hold off
 end
 
 %Main loop
 while t < tStop
     %Changing particle positions 
-    Vx = Vx + Vxv;
+    for q = 1:nPart
+        Vx = Vx + Vxv(ceil(x(q)/dim),ceil(y(q)/dim));
+        Vy = Vy + Vyv(ceil(x(q)/dim),ceil(y(q)/dim));
+    end
     x = xp + dt * Ix .* Vx;
     y = yp + dt * Iy .* Vy;
     
