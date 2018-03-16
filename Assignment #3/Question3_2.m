@@ -117,17 +117,22 @@ Box = Box*dim;
 
 %Assign position
 fprintf('Assigning particle position \n')
-while true
-    x(1:nPart) = nx*rand(1,nPart);
-    y(1:nPart) = ny*rand(1,nPart);
-    xnot = (x(:) > Box(1)) & (x(:) < Box(2));
-    ynot = (y(:) > Box(3)) & (y(:) < Box(4));
-    if xnot == 0
-        if ynot == 0
-            break;
-        end
-    end
+x(1:nPart) = nx*rand(1,nPart);
+y(1:nPart) = ny*rand(1,nPart);
+xnot(1:nPart) = (x(1:nPart) > Box(1)) & (x(1:nPart) < Box(2));
+ynot(1:nPart) = (y(1:nPart) < Box(3)) | (y(1:nPart) > Box(4));
+flag = xnot & ynot;
+while sum(flag) ~= 0
+    x(flag) = nx*rand(sum(flag),1);
+    y(flag) = ny*rand(sum(flag),1);
+    
+    xnot(1:nPart) = (x(1:nPart) > Box(1)) & (x(1:nPart) < Box(2));
+    ynot(1:nPart) = (y(1:nPart) < Box(3)) | (y(1:nPart) > Box(4));
+
+    flag = xnot & ynot;
+    %plot(x,y,'*');
 end
+fprintf('Particle position Complete\n')
 
 %Assign velocity
 std0 = sqrt(2 * C.kb * Temp / C.m_0); %Thermal Velocity
@@ -135,8 +140,8 @@ Vx(1:nPart) = std0 * randn(1, nPart);
 Vy(1:nPart) = std0 * randn(1, nPart);
 
 %Electric potential acceleration
-Vxv = Vmap - (C.q_0/C.m_0)*Ex*dt;
-Vyv = Vmap - (C.q_0/C.m_0)*Ey*dt;
+Vxv = (Vmap - (C.q_0/C.m_0)*Ey*dt);
+Vyv = (Vmap - (C.q_0/C.m_0)*Ex*dt);
     
 %Calculate mean free path
 mfp = zeros(0,Iter);
@@ -176,22 +181,27 @@ end
 %Main loop
 while t < tStop
     %Changing particle positions
-    
     for q = 1:nPart
         xq = ceil(x(q)/dim);
         yq = ceil(y(q)/dim);
-        if xq == 0
+        if xq <= 0
             xq = 1;
         end
-        if yq == 0
+        if xq >= nx/dim+1
+            xq = nx/dim;
+        end
+        if yq <= 0
             yq = 1;
+        end
+        if yq >= ny/dim+1
+            yq = ny/dim;
         end
         Vx = Vx + Vxv(xq,yq);
         Vy = Vy + Vyv(xq,yq);
     end
     
-    x = xp + dt * Ix .* Vx;
-    y = yp + dt * Iy .* Vy;
+    x = xp + dt * Ix .* Vx; 
+    y = yp + dt * Iy .* Vy; 
     
     % x-y boundary conditions
     i = find(x>nx);
@@ -274,43 +284,6 @@ while t < tStop
 end
 hold off
 
-%electron density map
-map = zeros(10,20);
-X = ceil(20*x/nx);
-Y = ceil(10*y/ny);
-
-for p = 1:nPart
-    map(Y(p),X(p)) = map(Y(p),X(p))+1;
-end
-
-figure
-surf(map)
-hold on
-title('Electron Density Map')
-xlabel('X')
-ylabel('Y')
-zlabel('Number of electrons')
-hold off
-
-%temperature map
-vth = zeros(1,nPart);
-T = vth;
-for p = 1:nPart
-    vth(p) = Vx(p).^2+Vy(p).^2;
-    T(p) = (vth(p)*C.m_0)/(2*C.kb);
-    map(Y(p),X(p)) = T(p);
-end
-
-figure
-surf(map)
-hold on
-title('Temperature Map')
-xlabel('X')
-ylabel('Y')
-zlabel('Temperature (ºK)')
-hold off
-
-
 %Thermal velocity histogram
 figure
 hist(vth)
@@ -321,13 +294,13 @@ ylabel('Counts')
 hold off
 
 %Temperature plot
-% figure
-% plot(dt:dt:tStop,T)
-% hold on
-% title('System Temperature over simluation (1000 iterations)')
-% xlabel('Time (s)')
-% ylabel('Temperature (ºK)')
-% hold off
+figure
+plot(dt:dt:tStop,T)
+hold on
+title('System Temperature over simluation (1000 iterations)')
+xlabel('Time (s)')
+ylabel('Temperature (ºK)')
+hold off
 
 %Current plot
 figure
@@ -339,24 +312,31 @@ ylabel('Current (A)')
 hold off
 
 %electron density map
-map = zeros(100,200);
-X = ceil(200*x/nx);
-Y = ceil(100*y/ny);
+map = zeros(nx/dim,ny/dim);
+X = ceil(nx/dim*x/nx);
+Y = ceil(ny/dim*y/ny);
 
 for p = 1:nPart
-    if Y(p) == 0
-        Y(p) = 1;
-    end
-    if X(p) == 0
+    if X(p) <= 0
         X(p) = 1;
     end
-    map(Y(p),X(p)) = map(Y(p),X(p))+1;
+    if X(p) >= nx/dim+1
+        X(p) = nx/dim;
+    end
+    if Y(p) <= 0
+        Y(p) = 1;
+    end
+    if Y(p) >= ny/dim+1
+        Y(p) = ny/dim;
+    end
+    map(X(p),Y(p)) = map(X(p),Y(p))+1;
 end
 
 figure
 h1 = mesh(map);
 %h1.EdgeColor = 'none';
 hold on
+axis tight
 title('Electron Density Map')
 xlabel('X (nm)')
 ylabel('Y (nm)')
@@ -374,6 +354,7 @@ end
 
 figure
 h2 = mesh(map);
+axis tight
 %h2.EdgeColor = 'none';
 hold on
 title('Temperature Map')
