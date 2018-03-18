@@ -1,4 +1,7 @@
-nx = 50;
+close all 
+clear
+
+nx = 100;
 ny = nx*3/2;
 % nx = 200;
 % ny = 100;

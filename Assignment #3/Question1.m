@@ -16,13 +16,13 @@ C.am = 1.66053892e-27;              % atomic mass
 
 %Defining variables
 Temp = 300; %K
-nPart = 10; %Number of particles
+nPart = 30000; %Number of particles
 dt = 5e-15; %nx/vth/100%
 Iter = 1000;
 tStop = Iter * dt;
 tmn = 0.2e-12;
 Pscat = 1-exp(-dt/tmn);
-goPlot = 1;
+goPlot = 0;
 nx = 200e-9;
 ny = 100e-9;
 V = 1;
@@ -38,6 +38,7 @@ Vy(1:nPart) = std0 * randn(1, nPart);
 
 %Electric potential acceleration
 Vxv = dt*C.q_0*V/(C.m_0*nx);
+Vyv = 0; % dt*C.q_0*V/(C.m_0*ny);
     
 %Calculate mean free path
 mfp = zeros(0,Iter);
@@ -78,6 +79,7 @@ end
 while t < tStop
     %Changing particle positions 
     Vx = Vx + Vxv;
+    Vy = Vy + Vyv;
     x = xp + dt * Ix .* Vx;
     y = yp + dt * Iy .* Vy;
     
@@ -182,7 +184,7 @@ for p = 1:nPart
 end
 
 figure
-h1 = mesh(map);
+h1 = surf(map);
 %h1.EdgeColor = 'none';
 hold on
 title('Electron Density Map')
@@ -201,7 +203,7 @@ for p = 1:nPart
 end
 
 figure
-h2 = mesh(map);
+h2 = surf(map);
 %h2.EdgeColor = 'none';
 hold on
 title('Temperature Map')
@@ -211,9 +213,9 @@ zlabel('Temperature (ºK)')
 hold off
 
 %Output minor calculations
-format long
-fprintf('Electric field strength is %f N/C\n ',V/nx)
-fprintf('Electron Force is %f N\n',C.q_0*V/nx)
-fprintf('Electron Acceleration is %f m/s^2\n',C.q_0*V/(C.m_0*nx))
+%format long
+fprintf('Electric field strength is %e N/C\n',V/nx)
+fprintf('Electron Force is %e N\n',C.q_0*V/nx)
+fprintf('Electron Acceleration is %e m/s^2\n',C.q_0*V/(C.m_0*nx))
 fprintf('Mean free path was calculated to be %f m\n',sum(mfp)/c)
 fprintf('Mean collision time is %e s\n',nx/(sum(vth)/c))

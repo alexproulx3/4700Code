@@ -17,7 +17,7 @@ C.am = 1.66053892e-27;              % atomic mass
 %Defining variables
 Temp = 300; %K
 nPart = 10; %Number of particles
-dt = 1e-15; %nx/vth/100%
+dt = 5e-16; %nx/vth/100%
 Iter = 1000;
 tStop = Iter * dt;
 tmn = 0.2e-12;
@@ -110,31 +110,42 @@ title('Electric Field in a two contact region')
 xlabel('X (um)')
 ylabel('Y (um)')
 
-%Redefine position
+%Redefine parameters
 nx = 100*dim;
 ny = nx*3/2;
+Box = Box*dim;
 
 %Assign position
-while true
-    x(1:nPart) = nx*rand(1,nPart);
-    y(1:nPart) = ny*rand(1,nPart);
-    xnot = (x(:) > Box(1)) & (x(:) < Box(2));
-    ynot = (y(:) > Box(3)) & (y(:) < Box(4));
-    if xnot == 0
-        if ynot == 0
-            break;
-        end
-    end
+fprintf('Assigning particle position \n')
+x(1:nPart) = nx*rand(1,nPart);
+y(1:nPart) = ny*rand(1,nPart);
+xnot(1:nPart) = (x(1:nPart) > Box(1)) & (x(1:nPart) < Box(2));
+ynot(1:nPart) = (y(1:nPart) < Box(3)) | (y(1:nPart) > Box(4));
+flag = xnot & ynot;
+while sum(flag) ~= 0
+    x(flag) = nx*rand(sum(flag),1);
+    y(flag) = ny*rand(sum(flag),1);
+    
+    xnot(1:nPart) = (x(1:nPart) > Box(1)) & (x(1:nPart) < Box(2));
+    ynot(1:nPart) = (y(1:nPart) < Box(3)) | (y(1:nPart) > Box(4));
+
+    flag = xnot & ynot;
+    %plot(x,y,'*');
 end
+fprintf('Particle position Complete\n')
 
 %Assign velocity
 std0 = sqrt(2 * C.kb * Temp / C.m_0); %Thermal Velocity
 Vx(1:nPart) = std0 * randn(1, nPart);
 Vy(1:nPart) = std0 * randn(1, nPart);
 
-%Electric potential acceleration
-Vxv = Vmap - (C.q_0/C.m_0)*Ex*dt;
-Vyv = Vmap - (C.q_0/C.m_0)*Ey*dt;
+%Electric potential velocity
+Vxv = dt*C.q_0*Vmap/(C.m_0*nx);
+
+%Electric field velocity
+%Vxv = dt*C.q_0*V/(C.m_0*nx);
+Vxe = - (C.q_0/C.m_0)*Ey*dt/dim;
+Vye = - (C.q_0/C.m_0)*Ex*dt/dim;
     
 %Calculate mean free path
 mfp = zeros(0,Iter);
@@ -155,42 +166,55 @@ t = 0;
 c = 1;
 time(c) = 0;
 
-%indexing
+%logical indexing
 Ix = ones(1,nPart);
 Iy = ones(1,nPart);
 
 if goPlot
     %set up figure
     figure('units','normalized','outerposition',[0 0 1 1])
-    %axis ([0 nx 0 ny])
     hold on
-    title('2-D Particle Projection (1000 iterations)')
     xlim([0 nx])
     ylim([0 ny])
     line([Box(1), Box(2), Box(2), Box(1), Box(1)], [ny, ny, Box(4), Box(4), ny]);
     line([Box(1), Box(2), Box(2), Box(1), Box(1)], [0, 0, Box(3), Box(3), 0]);
-    xlabel('X (m)')
-    ylabel('Y (m)')
+    
     col = hsv(nPart);
-    %hold off
 end
 
 %Main loop
 while t < tStop
-    %Changing particle positions 
+    %Changing electric field velocity
     for q = 1:nPart
-        Vx = Vx + Vxv(ceil(x(q)/dim),ceil(y(q)/dim));
-        Vy = Vy + Vyv(ceil(x(q)/dim),ceil(y(q)/dim));
+        xq = ceil(x(q)/dim);
+        yq = ceil(y(q)/dim);
+        if xq <= 0
+            xq = 1;
+        end
+        if xq >= nx/dim+1
+            xq = nx/dim;
+        end
+        if yq <= 0
+            yq = 1;
+        end
+        if yq >= ny/dim+1
+            yq = ny/dim;
+        end
+        Vxvx(:,q) = Vxv(xq,yq);
+        Vxex(:,q) = 1000*Vxe(xq,yq);
+        Vyey(:,q) = 1000*Vye(xq,yq);
     end
-    x = xp + dt * Ix .* Vx;
-    y = yp + dt * Iy .* Vy;
+    
+    %changing electron position
+    %Vx = Vx + Vxvx;
+    x = xp + dt * Ix .* Vx + dt * Vxex + dt * Vxvx; 
+    y = yp + dt * Iy .* Vy + dt * Vyey; 
     
     % x-y boundary conditions
     i = find(x>nx);
     j = find(x<0);
     k = find(y>ny);
     l = find(y<0);
-    
     if ~isempty(i)
         xp(1,i) = x(1,i) - nx;
         x(1,i) = 0;
@@ -206,6 +230,30 @@ while t < tStop
     if ~isempty(l)
         Iy(1,l) = -1*Iy(1,l);
         y(1,l) = yp(1,l) + 2 * dt * Iy(1,l) .* Vy(1,l);
+    end
+    
+    % Box boundaries
+    n = find(x>Box(1) & x<Box(2) & y>0 & y<Box(3));
+    m = find(x>Box(1) & x<Box(2) & y>Box(4) & y<ny);
+    if ~isempty(n)
+        if sum((xp<Box(1)&x>Box(1))|(xp>Box(2)&x<Box(2)))
+            Ix(1,n) = -1*Ix(1,n);
+            x(1,n) = xp(1,n) + 2 * dt * Ix(1,n) .* Vx(1,n);
+        end
+        if sum((yp<Box(4)&y>Box(4))|(yp>Box(3)&y<Box(3)))
+            Iy(1,n) = -1*Iy(1,n);
+            y(1,n) = yp(1,n) + 2 * dt * Iy(1,n) .* Vy(1,n);
+        end
+    end
+    if ~isempty(m)
+        if sum((xp<Box(1)&x>Box(1))|(xp>Box(2)&x<Box(2)))
+            Ix(1,m) = -1*Ix(1,m);
+            x(1,m) = xp(1,m) + 2 * dt * Ix(1,m) .* Vx(1,m);
+        end
+        if sum((yp<Box(4)&y>Box(4))|(yp>Box(3)&y<Box(3)))
+            Iy(1,m) = -1*Iy(1,m);
+            y(1,m) = yp(1,m) + 2 * dt * Iy(1,m) .* Vy(1,m);
+        end
     end
     
     %scattering
@@ -271,24 +319,33 @@ ylabel('Current (A)')
 hold off
 
 %electron density map
-map = zeros(100,200);
-X = ceil(200*x/nx);
-Y = ceil(100*y/ny);
+map = zeros(ny/dim,nx/dim);
+X = ceil(nx/dim*x/nx);
+Y = ceil(ny/dim*y/ny);
 
 for p = 1:nPart
-    if Y(p) == 0
+    if X(p) <= 0
+        X(p) = 1;
+    end
+    if X(p) >= nx/dim+1
+        X(p) = nx/dim;
+    end
+    if Y(p) <= 0
         Y(p) = 1;
     end
-    if X(p) == 0
-        X(p) = 1;
+    if Y(p) >= ny/dim+1
+        Y(p) = ny/dim;
     end
     map(Y(p),X(p)) = map(Y(p),X(p))+1;
 end
 
 figure
-h1 = mesh(map);
+h1 = surf(map);
 %h1.EdgeColor = 'none';
 hold on
+axis tight
+xlim([0 nx/dim])
+ylim([0 ny/dim])
 title('Electron Density Map')
 xlabel('X (nm)')
 ylabel('Y (nm)')
@@ -305,7 +362,10 @@ for p = 1:nPart
 end
 
 figure
-h2 = mesh(map);
+h2 = surf(map);
+axis tight
+xlim([0 nx/dim])
+ylim([0 ny/dim])
 %h2.EdgeColor = 'none';
 hold on
 title('Temperature Map')
@@ -316,8 +376,8 @@ hold off
 
 %Output minor calculations
 format long
-fprintf('Electric field strength is %f N/C\n ',V/nx)
-fprintf('Electron Force is %f N\n',C.q_0*V/nx)
-fprintf('Electron Acceleration is %f m/s^2\n',C.q_0*V/(C.m_0*nx))
+%fprintf('Electric field strength is %f N/C\n ',V/nx)
+%fprintf('Electron Force is %f N\n',C.q_0*V/nx)
+%fprintf('Electron Acceleration is %f m/s^2\n',C.q_0*V/(C.m_0*nx))
 fprintf('Mean free path was calculated to be %f m\n',sum(mfp)/c)
 fprintf('Mean collision time is %e s\n',nx/(sum(vth)/c))
