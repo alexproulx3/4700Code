@@ -63,7 +63,7 @@ end
 figure
 plot(Vin,Vdc(5,:))
 hold on
-title('DC Analysis')
+title('DC Sweep of Output Voltage')
 xlabel('Input Voltage Vin (V)')
 ylabel('Output Voltage Vo (V)')
 hold off
@@ -71,7 +71,7 @@ hold off
 figure
 plot(Vin,Vdc(3,:))
 hold on
-title('DC Analysis')
+title('DC Sweep of Voltage V3')
 xlabel('Input Voltage Vin (V)')
 ylabel('Output Voltage V3 (V)')
 hold off

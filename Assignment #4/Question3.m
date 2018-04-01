@@ -33,7 +33,7 @@ V1 = Vin;
 V4 = alpha/R3;
 
 %Transient stuff
-dt = 1e-3;
+dt = 1e-6;
 t =  dt:dt:1;
 
 %Currents
@@ -74,6 +74,7 @@ for a = 1:length(In)
 end
 
 %Gaussian Function
+f = 0.01/3;
 Vgauss = exp(-(t-0.06).^2/(2*0.03^2));
 FTgauss = fft(Vgauss);
 FTgauss = fftshift(FTgauss);

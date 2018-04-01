@@ -71,6 +71,7 @@ Fon = [Vin;
        0];
 
 Fstep = ones(1,1000);
+f = 1/0.03;
 Fstep(1:30) = 0;
 FTstep = fft(Fstep);
 FTstep = fftshift(FTstep);
@@ -121,10 +122,11 @@ hold off
 %Sine wave
 f = 1/0.03;
 Vsine = sin(2*pi*f*t);
+fs = 100;
 FTsine = fft(Vsine);
 FTsine = fftshift(FTsine);
 n = length(Vsine);
-freq = (-n/2:n/2-1)*(f/n);
+freq = (-10*n/2:10:10*n/2-1)*(fs/n);
 
 Fsine = zeros(length(G),length(Vsine));
 for a = 1:length(Vsine)
@@ -172,16 +174,17 @@ legend('Output','Input')
 grid on
 title('Sine Fourier Transform')
 xlabel('Frequency (Hz)')
-xlim([-20 20])
+%xlim([-20 20])
 ylabel('Output Voltage (V)')
 hold off
 
 %Gaussian Function
 Vgauss = exp(-(t-0.06).^2/(2*0.03^2));
+fs = 500;
 FTgauss = fft(Vgauss);
 FTgauss = fftshift(FTgauss);
 n = length(Vgauss);
-freq = (-n/2:n/2-1)*(f/n);
+freq = (-n/2:n/2-1)*(fs/n);
 
 Fgauss = zeros(length(G),length(Vgauss));
 for a = 1:length(Vgauss)

@@ -1,4 +1,4 @@
-close all;
+close all; clear allclose all;
 clear;
 
 global C
